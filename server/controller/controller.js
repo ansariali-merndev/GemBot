@@ -29,6 +29,12 @@ export const findHistory = async (req, res) => {
   const { userEmail } = req.body;
   try {
     const userHistory = await HistoryModel.findOne({ userEmail });
+    if (!userHistory) {
+      return res.json({
+        message: "success",
+        data: [],
+      });
+    }
     res.json({
       message: "success",
       data: userHistory.history,
