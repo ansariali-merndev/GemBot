@@ -1,14 +1,22 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Answer } from "./components/Answer";
 import { BarLoader } from "react-spinners";
 import { SideBar } from "./components/Sidebar";
 import { Image } from "./assets/assets";
+import "sweetalert2/dist/sweetalert2.min.css";
 import {
   SignedIn,
   SignedOut,
   SignInButton,
   UserButton,
 } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
+import {
+  handleAddHistory,
+  handleClearHistory,
+  handleFindHistory,
+} from "./assets/axios";
+import Swal from "sweetalert2";
 
 export function App() {
   const [question, setQuestion] = useState("");
@@ -16,6 +24,42 @@ export function App() {
   const [loader, setLoader] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const messageEndRef = useRef(null);
+  const [userEmail, setUserEmail] = useState("");
+  const { isLoaded, isSignedIn, user } = useUser();
+  const [userHistory, setUserHistory] = useState([]);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user) {
+      setUserEmail(user.primaryEmailAddress.emailAddress);
+    }
+  }, [isLoaded, isSignedIn, user]);
+
+  const HisFunc = async () => {
+    const his = await handleFindHistory({ userEmail });
+    setUserHistory(his.data);
+  };
+
+  const clearHistory = async () => {
+    const res = await handleClearHistory({ userEmail });
+    Swal.fire({
+      title: res.message,
+      icon: res.message.includes("success") ? "success" : "info",
+      background: "#1e1e2f",
+      color: "#ffffff",
+      confirmButtonColor: "#00b894",
+      confirmButtonText: "OK",
+      customClass: {
+        popup: "swal2-border-radius",
+      },
+    });
+    HisFunc();
+  };
+
+  useEffect(() => {
+    if (userEmail) {
+      HisFunc();
+    }
+  }, [userEmail]);
 
   const Payload = {
     contents: [
@@ -36,14 +80,18 @@ export function App() {
     }
   };
 
-  const saveHistory = () => {
-    console.log(question);
+  const saveHistory = async () => {
+    if (userEmail) {
+      const res = await handleAddHistory({ userEmail, question });
+      if (res.message === "success") {
+        HisFunc();
+      }
+    }
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     saveHistory();
-    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
     setLoader(true);
     let res = await fetch(import.meta.env.VITE_API_URL, {
       method: "POST",
@@ -54,6 +102,9 @@ export function App() {
     let dataStr = res.candidates[0].content.parts[0].text;
     setChatHistory((prev) => [...prev, { question, answer: dataStr }]);
     setQuestion("");
+    setTimeout(() => {
+      messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
   };
 
   return (
@@ -78,13 +129,21 @@ export function App() {
             showMenu ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <SideBar setShowMenu={setShowMenu} />
+          <SideBar
+            setShowMenu={setShowMenu}
+            history={userHistory}
+            clearHistory={clearHistory}
+          />
         </div>
         <div className="hidden md:block md:col-span-1 bg-zinc-800 h-screen">
-          <SideBar />
+          <SideBar
+            setShowMenu={setShowMenu}
+            history={userHistory}
+            clearHistory={clearHistory}
+          />
         </div>
         <div className="md:col-span-4 mt-8">
-          <div className="h-[80vh] overflow-y-scroll px-6 py-4">
+          <div className="h-[77vh] overflow-y-scroll px-6 py-4">
             {chatHistory.length > 0 ? (
               chatHistory.map((chat, index) => (
                 <div key={index}>
