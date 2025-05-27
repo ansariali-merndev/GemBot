@@ -23,3 +23,14 @@ GemBot is a smart AI-powered chatbot where users can ask questions and get insta
 ## 📦 Installation
 
 1. Clone the repository
+
+2. Install frontend & backend dependencies
+
+3. Add your environment variables in `.env` file
+
+4. Run the app
+
+## 🙋‍♂️ Author
+
+Made with ❤️ by Ali Ansari  
+BSc IT Student | Full-Stack Web Developer
